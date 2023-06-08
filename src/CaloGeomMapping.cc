@@ -66,13 +66,20 @@
 #include <fun4all/Fun4AllReturnCodes.h>
 
 #include <phool/PHCompositeNode.h>
-#include <phool/PHNodeIterator.h>  // for PHNodeIterator
 #include <phool/PHIODataNode.h>    // for PHIODataNode
+#include <phool/PHNode.h>
+#include <phool/PHNodeIterator.h>  // for PHNodeIterator
+#include <phool/PHObject.h>
+#include <phool/getClass.h>
+#include <phool/phool.h>  // for PHWHERE
+
 #include <calobase/RawTowerDefs.h>           // for encode_towerid
 #include <calobase/RawTowerGeom.h>           // for RawTowerGeom
 #include <calobase/RawTowerGeomContainer.h>  // for RawTowerGeomC...
 #include <calobase/RawTowerGeomContainer_Cylinderv1.h>
 #include <calobase/RawTowerGeomv1.h>
+
+#include <g4main/PHG4Utils.h>
 
 //____________________________________________________________________________..
 CaloGeomMapping::CaloGeomMapping(const std::string &name):
@@ -184,9 +191,13 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
 	const RawTowerDefs::keytype key =
             RawTowerDefs::encode_towerid(caloid, ieta, iphi);
 
-        const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi)));
-        const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi)));
-        const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta))));
+	/* double r = 97.5; // need to set this to calo radius */
+        /* const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi))); */
+        /* const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi))); */
+        /* const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta)))); */
+	const double x(0);
+	const double y(0);
+	const double z(0);
 
         RawTowerGeom *tg = m_RawTowerGeomContainer->get_tower_geometry(key);
         if (tg)

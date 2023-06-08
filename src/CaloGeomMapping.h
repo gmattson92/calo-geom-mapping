@@ -55,7 +55,7 @@ class CaloGeomMapping : public SubsysReco
   void CreateGeomNode(PHCompositeNode* topNode);
 
  private:
-  std::string m_detector = "NONE";
+  std::string m_Detector = "NONE";
   std::string m_TowerGeomNodeName;
   RawTowerGeomContainer* m_RawTowerGeomContainer = nullptr;
 };
