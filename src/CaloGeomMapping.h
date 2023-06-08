@@ -8,6 +8,7 @@
 #include <string>
 
 class PHCompositeNode;
+class RawTowerGeomContainer;
 
 class CaloGeomMapping : public SubsysReco
 {
@@ -51,9 +52,12 @@ class CaloGeomMapping : public SubsysReco
   void Print(const std::string &what = "ALL") const override;
 
   // Create tower geometry mapping node
-  int CreateNode(PHCompositeNode* topNode);
+  void CreateGeomNode(PHCompositeNode* topNode);
 
  private:
+  std::string m_detector = "NONE";
+  std::string m_TowerGeomNodeName;
+  RawTowerGeomContainer* m_RawTowerGeomContainer = nullptr;
 };
 
 #endif // CALOGEOMMAPPING_H

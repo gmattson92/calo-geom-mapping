@@ -66,6 +66,13 @@
 #include <fun4all/Fun4AllReturnCodes.h>
 
 #include <phool/PHCompositeNode.h>
+#include <phool/PHNodeIterator.h>  // for PHNodeIterator
+#include <phool/PHIODataNode.h>    // for PHIODataNode
+#include <calobase/RawTowerDefs.h>           // for encode_towerid
+#include <calobase/RawTowerGeom.h>           // for RawTowerGeom
+#include <calobase/RawTowerGeomContainer.h>  // for RawTowerGeomC...
+#include <calobase/RawTowerGeomContainer_Cylinderv1.h>
+#include <calobase/RawTowerGeomv1.h>
 
 //____________________________________________________________________________..
 CaloGeomMapping::CaloGeomMapping(const std::string &name):
@@ -91,6 +98,16 @@ int CaloGeomMapping::Init(PHCompositeNode *topNode)
 int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
+  try
+  {
+    CreateGeomNode(topNode);
+  }
+  catch (std::exception &e)
+  {
+    std::cout << e.what() << std::endl;
+    exit(1);
+  }
+  topNode->print();
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -134,7 +151,87 @@ void CaloGeomMapping::Print(const std::string &what) const
 {
   std::cout << "CaloGeomMapping::Print(const std::string &what) const Printing info for " << what << std::endl;
 }
- void CaloGeomMapping::CreateNode(PHCompositeNode* topNode)
+
+void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
 {
+  PHNodeIterator nodeItr(topNode);
+  // DST node
+  PHCompositeNode *dst_node = dynamic_cast<PHCompositeNode *>(
+      nodeItr.findFirst("PHCompositeNode", "DST"));
+  if (!dst_node)
+  {
+    std::cout << "PHComposite node created: DST" << std::endl;
+    dst_node = new PHCompositeNode("DST");
+    topNode->addNode(dst_node);
+  }
+
+  m_TowerGeomNodeName = "TOWERGEOM_" + m_Detector;
+  m_RawTowerGeomContainer = findNode::getClass<RawTowerGeomContainer>(topNode, m_TowerGeomNodeName);
+  if (!m_RawTowerGeomContainer)
+  {
+    const RawTowerDefs::CalorimeterId caloid = RawTowerDefs::convert_name_to_caloid(m_Detector);
+    m_RawTowerGeomContainer = new RawTowerGeomContainer_Cylinderv1(caloid);
+    // add it to the node tree
+    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(m_RawTowerGeomContainer, m_TowerGeomNodeName, "PHObject");
+    dst_node->addNode(newNode);
+
+    // Fill in the tower geometry info here
+    for (int ieta=0; ieta<m_RawTowerGeomContainer->get_etabins(); ieta++)
+    {
+      for (int iphi=0; iphi<m_RawTowerGeomContainer->get_phibins(); iphi++)
+      {
+        // build tower geom here
+	const RawTowerDefs::keytype key =
+            RawTowerDefs::encode_towerid(caloid, ieta, iphi);
+
+        const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi)));
+        const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi)));
+        const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta))));
+
+        RawTowerGeom *tg = m_RawTowerGeomContainer->get_tower_geometry(key);
+        if (tg)
+        {
+          if (Verbosity() > 0)
+          {
+            std::cout << "RawTowerBuilder::CreateNodes - Tower geometry " << key << " already exists" << std::endl;
+          }
+
+          if (fabs(tg->get_center_x() - x) > 1e-4)
+          {
+            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
+                      << std::endl;
+
+            exit(1);
+          }
+          if (fabs(tg->get_center_y() - y) > 1e-4)
+          {
+            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
+                      << std::endl;
+            exit(1);
+          }
+          if (fabs(tg->get_center_z() - z) > 1e-4)
+          {
+            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
+                      << std::endl;
+            exit(1);
+          }
+        }
+        else
+        {
+          if (Verbosity() > 0)
+          {
+            std::cout << "RawTowerBuilder::CreateNodes - building tower geometry " << key << "" << std::endl;
+          }
+
+          tg = new RawTowerGeomv1(key);
+
+          tg->set_center_x(x);
+          tg->set_center_y(y);
+          tg->set_center_z(z);
+          m_RawTowerGeomContainer->add_tower_geometry(tg);
+	}
+      }
+    }  // end loop over eta, phi bins
+  }  // end of building RawTowerGeomContainer
 
 }
