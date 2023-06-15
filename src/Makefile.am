@@ -21,7 +21,10 @@ libCaloGeomMapping_la_SOURCES = \
 
 libCaloGeomMapping_la_LIBADD = \
   -lphool \
-  -lSubsysReco
+  -lSubsysReco \
+  -lRawTowerGeomContainer \
+  -lRawTowerGeomv1 \
+  -lRawTowerGeomContainer_Cylinderv1
 
 BUILT_SOURCES = testexternals.cc
 

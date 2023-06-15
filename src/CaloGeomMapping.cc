@@ -1,66 +1,3 @@
-//____________________________________________________________________________..
-//
-// This is a template for a Fun4All SubsysReco module with all methods from the
-// $OFFLINE_MAIN/include/fun4all/SubsysReco.h baseclass
-// You do not have to implement all of them, you can just remove unused methods
-// here and in CaloGeomMapping.h.
-//
-// CaloGeomMapping(const std::string &name = "CaloGeomMapping")
-// everything is keyed to CaloGeomMapping, duplicate names do work but it makes
-// e.g. finding culprits in logs difficult or getting a pointer to the module
-// from the command line
-//
-// CaloGeomMapping::~CaloGeomMapping()
-// this is called when the Fun4AllServer is deleted at the end of running. Be
-// mindful what you delete - you do loose ownership of object you put on the node tree
-//
-// int CaloGeomMapping::Init(PHCompositeNode *topNode)
-// This method is called when the module is registered with the Fun4AllServer. You
-// can create historgrams here or put objects on the node tree but be aware that
-// modules which haven't been registered yet did not put antyhing on the node tree
-//
-// int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
-// This method is called when the first event is read (or generated). At
-// this point the run number is known (which is mainly interesting for raw data
-// processing). Also all objects are on the node tree in case your module's action
-// depends on what else is around. Last chance to put nodes under the DST Node
-// We mix events during readback if branches are added after the first event
-//
-// int CaloGeomMapping::process_event(PHCompositeNode *topNode)
-// called for every event. Return codes trigger actions, you find them in
-// $OFFLINE_MAIN/include/fun4all/Fun4AllReturnCodes.h
-//   everything is good:
-//     return Fun4AllReturnCodes::EVENT_OK
-//   abort event reconstruction, clear everything and process next event:
-//     return Fun4AllReturnCodes::ABORT_EVENT; 
-//   proceed but do not save this event in output (needs output manager setting):
-//     return Fun4AllReturnCodes::DISCARD_EVENT; 
-//   abort processing:
-//     return Fun4AllReturnCodes::ABORT_RUN
-// all other integers will lead to an error and abort of processing
-//
-// int CaloGeomMapping::ResetEvent(PHCompositeNode *topNode)
-// If you have internal data structures (arrays, stl containers) which needs clearing
-// after each event, this is the place to do that. The nodes under the DST node are cleared
-// by the framework
-//
-// int CaloGeomMapping::EndRun(const int runnumber)
-// This method is called at the end of a run when an event from a new run is
-// encountered. Useful when analyzing multiple runs (raw data). Also called at
-// the end of processing (before the End() method)
-//
-// int CaloGeomMapping::End(PHCompositeNode *topNode)
-// This is called at the end of processing. It needs to be called by the macro
-// by Fun4AllServer::End(), so do not forget this in your macro
-//
-// int CaloGeomMapping::Reset(PHCompositeNode *topNode)
-// not really used - it is called before the dtor is called
-//
-// void CaloGeomMapping::Print(const std::string &what) const
-// Called from the command line - useful to print information when you need it
-//
-//____________________________________________________________________________..
-
 #include "CaloGeomMapping.h"
 
 #include <fun4all/Fun4AllReturnCodes.h>
@@ -78,6 +15,9 @@
 #include <calobase/RawTowerGeomContainer.h>  // for RawTowerGeomC...
 #include <calobase/RawTowerGeomContainer_Cylinderv1.h>
 #include <calobase/RawTowerGeomv1.h>
+
+#include <g4detectors/PHG4CylinderCellGeom.h>
+#include <g4detectors/PHG4CylinderCellGeomContainer.h>
 
 #include <g4main/PHG4Utils.h>
 
@@ -105,6 +45,16 @@ int CaloGeomMapping::Init(PHCompositeNode *topNode)
 int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
+
+  std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector;
+  PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename);
+  if (!cellgeos)
+  {
+    std::cout << PHWHERE << " " << geonodename
+              << " Node missing, doing nothing." << std::endl;
+    throw std::runtime_error(
+        "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes");
+  }
   try
   {
     CreateGeomNode(topNode);
@@ -161,88 +111,125 @@ void CaloGeomMapping::Print(const std::string &what) const
 
 void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
 {
-  PHNodeIterator nodeItr(topNode);
-  // DST node
-  PHCompositeNode *dst_node = dynamic_cast<PHCompositeNode *>(
-      nodeItr.findFirst("PHCompositeNode", "DST"));
-  if (!dst_node)
+  PHNodeIterator iter(topNode);
+  PHCompositeNode *runNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "RUN"));
+  if (!runNode)
   {
-    std::cout << "PHComposite node created: DST" << std::endl;
-    dst_node = new PHCompositeNode("DST");
-    topNode->addNode(dst_node);
+      std::cout << PHWHERE << "Run Node missing, doing nothing." << std::endl;
+      throw std::runtime_error("Failed to find Run node in CaloGeomMapping::CreateGeomNode");
   }
 
+  PHNodeIterator runIter(runNode);
+  PHCompositeNode *RunDetNode = dynamic_cast<PHCompositeNode *>(runIter.findFirst("PHCompositeNode", m_Detector));
+  if (!RunDetNode)
+  {
+      RunDetNode = new PHCompositeNode(m_Detector);
+      runNode->addNode(RunDetNode);
+  }
+
+  std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector;
+  PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename);
+  if (!cellgeos)
+  {
+    std::cout << PHWHERE << " " << geonodename
+              << " Node missing, doing nothing." << std::endl;
+    throw std::runtime_error(
+        "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes");
+  }
+
+  const RawTowerDefs::CalorimeterId caloid = RawTowerDefs::convert_name_to_caloid(m_Detector);
   m_TowerGeomNodeName = "TOWERGEOM_" + m_Detector;
   m_RawTowerGeomContainer = findNode::getClass<RawTowerGeomContainer>(topNode, m_TowerGeomNodeName);
   if (!m_RawTowerGeomContainer)
   {
-    const RawTowerDefs::CalorimeterId caloid = RawTowerDefs::convert_name_to_caloid(m_Detector);
     m_RawTowerGeomContainer = new RawTowerGeomContainer_Cylinderv1(caloid);
     // add it to the node tree
     PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(m_RawTowerGeomContainer, m_TowerGeomNodeName, "PHObject");
-    dst_node->addNode(newNode);
+    RunDetNode->addNode(newNode);
+  }
 
-    // Fill in the tower geometry info here
-    for (int ieta=0; ieta<m_RawTowerGeomContainer->get_etabins(); ieta++)
+  // Set the number of eta and phi bins
+  m_RawTowerGeomContainer->set_radius(NAN);
+  m_RawTowerGeomContainer->set_thickness(NAN);
+  m_RawTowerGeomContainer->set_phibins(256); // EMCal
+  //  m_RawTowerGeomContainer->set_phistep(m_PhiStep);
+  //  m_RawTowerGeomContainer->set_phimin(m_PhiMin);
+  m_RawTowerGeomContainer->set_etabins(96); // EMCal
+
+  // Set the eta and phi bounds of each bin
+  for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_phibins(); ibin++)
+  {
+    /* const std::pair<double, double> range = first_cellgeo->get_phibounds(ibin); */
+    const std::pair<double, double> range(0.0, 0.0);
+    m_RawTowerGeomContainer->set_phibounds(ibin, range);
+  }
+  for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_etabins(); ibin++)
+  {
+    /* const std::pair<double, double> range = first_cellgeo->get_etabounds(ibin); */
+    const std::pair<double, double> range(0.0, 0.0);
+    m_RawTowerGeomContainer->set_etabounds(ibin, range);
+  }
+
+  // Populate container with RawTowerGeom objects
+  for (int ieta=0; ieta<m_RawTowerGeomContainer->get_etabins(); ieta++)
+  {
+    for (int iphi=0; iphi<m_RawTowerGeomContainer->get_phibins(); iphi++)
     {
-      for (int iphi=0; iphi<m_RawTowerGeomContainer->get_phibins(); iphi++)
+      // build tower geom here
+      const RawTowerDefs::keytype key =
+	RawTowerDefs::encode_towerid(caloid, ieta, iphi);
+
+      /* double r = 97.5; // need to set this to calo radius */
+      /* const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi))); */
+      /* const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi))); */
+      /* const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta)))); */
+      const double x(0);
+      const double y(0);
+      const double z(0);
+
+      RawTowerGeom *tg = m_RawTowerGeomContainer->get_tower_geometry(key);
+      if (tg)
       {
-        // build tower geom here
-	const RawTowerDefs::keytype key =
-            RawTowerDefs::encode_towerid(caloid, ieta, iphi);
+	if (Verbosity() > 0)
+	{
+	  std::cout << "RawTowerBuilder::CreateNodes - Tower geometry " << key << " already exists" << std::endl;
+	}
 
-	/* double r = 97.5; // need to set this to calo radius */
-        /* const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi))); */
-        /* const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi))); */
-        /* const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta)))); */
-	const double x(0);
-	const double y(0);
-	const double z(0);
+	if (fabs(tg->get_center_x() - x) > 1e-4)
+	{
+	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
+	    << std::endl;
 
-        RawTowerGeom *tg = m_RawTowerGeomContainer->get_tower_geometry(key);
-        if (tg)
-        {
-          if (Verbosity() > 0)
-          {
-            std::cout << "RawTowerBuilder::CreateNodes - Tower geometry " << key << " already exists" << std::endl;
-          }
-
-          if (fabs(tg->get_center_x() - x) > 1e-4)
-          {
-            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
-                      << std::endl;
-
-            exit(1);
-          }
-          if (fabs(tg->get_center_y() - y) > 1e-4)
-          {
-            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
-                      << std::endl;
-            exit(1);
-          }
-          if (fabs(tg->get_center_z() - z) > 1e-4)
-          {
-            std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
-                      << std::endl;
-            exit(1);
-          }
-        }
-        else
-        {
-          if (Verbosity() > 0)
-          {
-            std::cout << "RawTowerBuilder::CreateNodes - building tower geometry " << key << "" << std::endl;
-          }
-
-          tg = new RawTowerGeomv1(key);
-
-          tg->set_center_x(x);
-          tg->set_center_y(y);
-          tg->set_center_z(z);
-          m_RawTowerGeomContainer->add_tower_geometry(tg);
+	  exit(1);
+	}
+	if (fabs(tg->get_center_y() - y) > 1e-4)
+	{
+	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
+	    << std::endl;
+	  exit(1);
+	}
+	if (fabs(tg->get_center_z() - z) > 1e-4)
+	{
+	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
+	    << std::endl;
+	  exit(1);
 	}
       }
-    }  // end loop over eta, phi bins
-  }  // end of building RawTowerGeomContainer
+      else
+      {
+	if (Verbosity() > 0)
+	{
+	  std::cout << "RawTowerBuilder::CreateNodes - building tower geometry " << key << "" << std::endl;
+	}
 
-}
+	tg = new RawTowerGeomv1(key);
+
+	tg->set_center_x(x);
+	tg->set_center_y(y);
+	tg->set_center_z(z);
+	m_RawTowerGeomContainer->add_tower_geometry(tg);
+      }
+    }
+  }  // end loop over eta, phi bins
+}  // end of building RawTowerGeomContainer
+
