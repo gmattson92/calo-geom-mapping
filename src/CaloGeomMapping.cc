@@ -16,8 +16,8 @@
 #include <calobase/RawTowerGeomContainer_Cylinderv1.h>
 #include <calobase/RawTowerGeomv1.h>
 
-#include <g4detectors/PHG4CylinderCellGeom.h>
-#include <g4detectors/PHG4CylinderCellGeomContainer.h>
+/* #include <g4detectors/PHG4CylinderCellGeom.h> */
+/* #include <g4detectors/PHG4CylinderCellGeomContainer.h> */
 
 #include <g4main/PHG4Utils.h>
 
@@ -46,15 +46,15 @@ int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
 
-  std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector;
-  PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename);
-  if (!cellgeos)
-  {
-    std::cout << PHWHERE << " " << geonodename
-              << " Node missing, doing nothing." << std::endl;
-    throw std::runtime_error(
-        "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes");
-  }
+  /* std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector; */
+  /* PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename); */
+  /* if (!cellgeos) */
+  /* { */
+  /*   std::cout << PHWHERE << " " << geonodename */
+  /*             << " Node missing, doing nothing." << std::endl; */
+  /*   throw std::runtime_error( */
+  /*       "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes"); */
+  /* } */
   try
   {
     CreateGeomNode(topNode);
@@ -127,15 +127,15 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
       runNode->addNode(RunDetNode);
   }
 
-  std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector;
-  PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename);
-  if (!cellgeos)
-  {
-    std::cout << PHWHERE << " " << geonodename
-              << " Node missing, doing nothing." << std::endl;
-    throw std::runtime_error(
-        "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes");
-  }
+  /* std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector; */
+  /* PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename); */
+  /* if (!cellgeos) */
+  /* { */
+  /*   std::cout << PHWHERE << " " << geonodename */
+  /*             << " Node missing, doing nothing." << std::endl; */
+  /*   throw std::runtime_error( */
+  /*       "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes"); */
+  /* } */
 
   const RawTowerDefs::CalorimeterId caloid = RawTowerDefs::convert_name_to_caloid(m_Detector);
   m_TowerGeomNodeName = "TOWERGEOM_" + m_Detector;
