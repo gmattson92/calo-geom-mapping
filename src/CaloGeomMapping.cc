@@ -1,4 +1,5 @@
 #include "CaloGeomMapping.h"
+#include <fstream>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
@@ -38,23 +39,8 @@ CaloGeomMapping::~CaloGeomMapping()
 int CaloGeomMapping::Init(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::Init(PHCompositeNode *topNode) Initializing" << std::endl;
-  return Fun4AllReturnCodes::EVENT_OK;
-}
 
-//____________________________________________________________________________..
-int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
-{
-  std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
-
-  /* std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector; */
-  /* PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename); */
-  /* if (!cellgeos) */
-  /* { */
-  /*   std::cout << PHWHERE << " " << geonodename */
-  /*             << " Node missing, doing nothing." << std::endl; */
-  /*   throw std::runtime_error( */
-  /*       "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes"); */
-  /* } */
+  std::cout << "Printing node tree before new node creation:" << std::endl;
   try
   {
     CreateGeomNode(topNode);
@@ -64,7 +50,15 @@ int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
     std::cout << e.what() << std::endl;
     exit(1);
   }
+  std::cout << "Printing node tree after new node creation:" << std::endl;
   topNode->print();
+  return Fun4AllReturnCodes::EVENT_OK;
+}
+
+//____________________________________________________________________________..
+int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
+{
+  std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -127,16 +121,6 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
       runNode->addNode(RunDetNode);
   }
 
-  /* std::string geonodename = "CYLINDERCELLGEOM_" + m_Detector; */
-  /* PHG4CylinderCellGeomContainer *cellgeos = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, geonodename); */
-  /* if (!cellgeos) */
-  /* { */
-  /*   std::cout << PHWHERE << " " << geonodename */
-  /*             << " Node missing, doing nothing." << std::endl; */
-  /*   throw std::runtime_error( */
-  /*       "Failed to find " + geonodename + " node in RawTowerBuilder::CreateNodes"); */
-  /* } */
-
   const RawTowerDefs::CalorimeterId caloid = RawTowerDefs::convert_name_to_caloid(m_Detector);
   m_TowerGeomNodeName = "TOWERGEOM_" + m_Detector;
   m_RawTowerGeomContainer = findNode::getClass<RawTowerGeomContainer>(topNode, m_TowerGeomNodeName);
@@ -148,26 +132,69 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
     RunDetNode->addNode(newNode);
   }
 
-  // Set the number of eta and phi bins
-  m_RawTowerGeomContainer->set_radius(NAN);
-  m_RawTowerGeomContainer->set_thickness(NAN);
-  m_RawTowerGeomContainer->set_phibins(256); // EMCal
-  //  m_RawTowerGeomContainer->set_phistep(m_PhiStep);
-  //  m_RawTowerGeomContainer->set_phimin(m_PhiMin);
-  m_RawTowerGeomContainer->set_etabins(96); // EMCal
+  std::ifstream inText;
+  // Set the radius, thickness, number of eta and phi bins
+  if (m_Detector == "CEMC")
+  {
+    inText.open("../calo_maps/emcal.txt");
+    m_RawTowerGeomContainer->set_radius(93.5);
+    m_RawTowerGeomContainer->set_thickness(20.4997);
+    m_RawTowerGeomContainer->set_phibins(256);
+    m_RawTowerGeomContainer->set_etabins(96);
+    //  m_RawTowerGeomContainer->set_phistep(m_PhiStep);
+    //  m_RawTowerGeomContainer->set_phimin(m_PhiMin);
+  }
+  if (m_Detector == "HCALIN")
+  {
+    inText.open("../calo_maps/ihcal.txt");
+    m_RawTowerGeomContainer->set_radius(115);
+    m_RawTowerGeomContainer->set_thickness(25.005);
+    m_RawTowerGeomContainer->set_phibins(64);
+    m_RawTowerGeomContainer->set_etabins(24);
+    //  m_RawTowerGeomContainer->set_phistep(m_PhiStep);
+    //  m_RawTowerGeomContainer->set_phimin(m_PhiMin);
+  }
+  if (m_Detector == "HCALOUT")
+  {
+    inText.open("../calo_maps/ohcal.txt");
+    m_RawTowerGeomContainer->set_radius(177.423);
+    m_RawTowerGeomContainer->set_thickness(96.894);
+    m_RawTowerGeomContainer->set_phibins(64);
+    m_RawTowerGeomContainer->set_etabins(24);
+    //  m_RawTowerGeomContainer->set_phistep(m_PhiStep);
+    //  m_RawTowerGeomContainer->set_phimin(m_PhiMin);
+  }
 
   // Set the eta and phi bounds of each bin
-  for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_phibins(); ibin++)
-  {
-    /* const std::pair<double, double> range = first_cellgeo->get_phibounds(ibin); */
-    const std::pair<double, double> range(0.0, 0.0);
-    m_RawTowerGeomContainer->set_phibounds(ibin, range);
-  }
   for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_etabins(); ibin++)
   {
+    char row[256];
+    inText.getline(row, 256);
+    std::string rowstring = row;
+    std::string first, second;
+    size_t pos = rowstring.find_first_of(",");
+    first = rowstring.substr(0, pos);
+    second = rowstring.substr(pos+1);
     /* const std::pair<double, double> range = first_cellgeo->get_etabounds(ibin); */
-    const std::pair<double, double> range(0.0, 0.0);
+    /* const std::pair<double, double> range(0.0, 0.0); */
+    const std::pair<double, double> range(std::stod(first), std::stod(second));
     m_RawTowerGeomContainer->set_etabounds(ibin, range);
+    std::cout << "Setting eta bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
+  }
+  for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_phibins(); ibin++)
+  {
+    char row[256];
+    inText.getline(row, 256);
+    std::string rowstring = row;
+    std::string first, second;
+    size_t pos = rowstring.find_first_of(",");
+    first = rowstring.substr(0, pos);
+    second = rowstring.substr(pos+1);
+    /* const std::pair<double, double> range = first_cellgeo->get_phibounds(ibin); */
+    /* const std::pair<double, double> range(0.0, 0.0); */
+    const std::pair<double, double> range(std::stod(first), std::stod(second));
+    m_RawTowerGeomContainer->set_phibounds(ibin, range);
+    std::cout << "Setting phi bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
   }
 
   // Populate container with RawTowerGeom objects
@@ -179,38 +206,39 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
       const RawTowerDefs::keytype key =
 	RawTowerDefs::encode_towerid(caloid, ieta, iphi);
 
-      /* double r = 97.5; // need to set this to calo radius */
-      /* const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi))); */
-      /* const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi))); */
+      double r = m_RawTowerGeomContainer->get_radius();
+      const double x(r * cos(m_RawTowerGeomContainer->get_phicenter(iphi)));
+      const double y(r * sin(m_RawTowerGeomContainer->get_phicenter(iphi)));
       /* const double z(r / tan(PHG4Utils::get_theta(m_RawTowerGeomContainer->get_etacenter(ieta)))); */
-      const double x(0);
-      const double y(0);
-      const double z(0);
+      const double z(r / tan(2*atan(exp(-1*m_RawTowerGeomContainer->get_etacenter(ieta)))));
+      /* const double x(0); */
+      /* const double y(0); */
+      /* const double z(0); */
 
       RawTowerGeom *tg = m_RawTowerGeomContainer->get_tower_geometry(key);
       if (tg)
       {
 	if (Verbosity() > 0)
 	{
-	  std::cout << "RawTowerBuilder::CreateNodes - Tower geometry " << key << " already exists" << std::endl;
+	  std::cout << "CaloGeomMapping::CreateGeomNode - Tower geometry " << key << " already exists" << std::endl;
 	}
 
 	if (fabs(tg->get_center_x() - x) > 1e-4)
 	{
-	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
+	  std::cout << "CaloGeomMapping::CreateGeomNode - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
 	    << std::endl;
 
 	  exit(1);
 	}
 	if (fabs(tg->get_center_y() - y) > 1e-4)
 	{
-	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
+	  std::cout << "CaloGeomMapping::CreateGeomNode - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
 	    << std::endl;
 	  exit(1);
 	}
 	if (fabs(tg->get_center_z() - z) > 1e-4)
 	{
-	  std::cout << "RawTowerBuilder::CreateNodes - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
+	  std::cout << "CaloGeomMapping::CreateGeomNode - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
 	    << std::endl;
 	  exit(1);
 	}
@@ -219,7 +247,7 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
       {
 	if (Verbosity() > 0)
 	{
-	  std::cout << "RawTowerBuilder::CreateNodes - building tower geometry " << key << "" << std::endl;
+	  std::cout << "CaloGeomMapping::CreateGeomNode - building tower geometry " << key << "" << std::endl;
 	}
 
 	tg = new RawTowerGeomv1(key);
@@ -228,6 +256,8 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
 	tg->set_center_y(y);
 	tg->set_center_z(z);
 	m_RawTowerGeomContainer->add_tower_geometry(tg);
+	/* std::cout << "Added new RawTowerGeom " << tg << "; more details:\n"; */
+	/* tg->identify(); */
       }
     }
   }  // end loop over eta, phi bins

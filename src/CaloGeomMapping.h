@@ -55,7 +55,7 @@ class CaloGeomMapping : public SubsysReco
   void CreateGeomNode(PHCompositeNode* topNode);
 
  protected:
-  std::string m_Detector = "NONE"; // EMCal, iHCal or oHCal
+  std::string m_Detector = "CEMC"; // EMCal, iHCal or oHCal
   std::string m_TowerGeomNodeName;
   RawTowerGeomContainer* m_RawTowerGeomContainer = nullptr;
 };

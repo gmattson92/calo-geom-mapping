@@ -5,6 +5,7 @@
 
 #include <fun4all/Fun4AllDstInputManager.h>
 #include <fun4all/Fun4AllInputManager.h>
+#include <fun4all/Fun4AllOutputManager.h>
 #include <fun4all/Fun4AllServer.h>
 
 #include <calogeommapping/CaloGeomMapping.h>
@@ -34,6 +35,10 @@ void Fun4All_RunCaloGeomMapping(
 
   CaloGeomMapping *eval = new CaloGeomMapping("dummy");//, outputFile);
   se->registerSubsystem(eval);
+
+  /* Fun4AllOutputManager *outCaloDst = new Fun4AllOutputManager("OutDSTCalo", outputFile); */
+  /* se->registerOutputManager(outCaloDst); */
+  /* std::cout << "\n\nGreg info: output file will be " << outCaloDst->OutFileName() << "\n\n"; */
   
   se->run(nEvents);
   se->End();
