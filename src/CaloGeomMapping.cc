@@ -1,5 +1,5 @@
 #include "CaloGeomMapping.h"
-#include <fstream>
+#include <cdbobjects/CDBTTree.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
@@ -17,10 +17,8 @@
 #include <calobase/RawTowerGeomContainer_Cylinderv1.h>
 #include <calobase/RawTowerGeomv1.h>
 
-/* #include <g4detectors/PHG4CylinderCellGeom.h> */
-/* #include <g4detectors/PHG4CylinderCellGeomContainer.h> */
-
 #include <g4main/PHG4Utils.h>
+
 
 //____________________________________________________________________________..
 CaloGeomMapping::CaloGeomMapping(const std::string &name):
@@ -132,11 +130,15 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
     RunDetNode->addNode(newNode);
   }
 
-  std::ifstream inText;
+  std::string inName = "calo_geom_mapping.root";
+  CDBTTree * cdbttree = new CDBTTree(inName);
+  cdbttree->LoadCalibrations();
+  std::string parName;
+  std::string parBase;
   // Set the radius, thickness, number of eta and phi bins
   if (m_Detector == "CEMC")
   {
-    inText.open("../calo_maps/emcal.txt");
+    parBase = "cemc";
     m_RawTowerGeomContainer->set_radius(93.5);
     m_RawTowerGeomContainer->set_thickness(20.4997);
     m_RawTowerGeomContainer->set_phibins(256);
@@ -146,7 +148,7 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
   }
   if (m_Detector == "HCALIN")
   {
-    inText.open("../calo_maps/ihcal.txt");
+    parBase = "hcalin";
     m_RawTowerGeomContainer->set_radius(115);
     m_RawTowerGeomContainer->set_thickness(25.005);
     m_RawTowerGeomContainer->set_phibins(64);
@@ -156,7 +158,7 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
   }
   if (m_Detector == "HCALOUT")
   {
-    inText.open("../calo_maps/ohcal.txt");
+    parBase = "hcalout";
     m_RawTowerGeomContainer->set_radius(177.423);
     m_RawTowerGeomContainer->set_thickness(96.894);
     m_RawTowerGeomContainer->set_phibins(64);
@@ -168,31 +170,21 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
   // Set the eta and phi bounds of each bin
   for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_etabins(); ibin++)
   {
-    char row[256];
-    inText.getline(row, 256);
-    std::string rowstring = row;
-    std::string first, second;
-    size_t pos = rowstring.find_first_of(",");
-    first = rowstring.substr(0, pos);
-    second = rowstring.substr(pos+1);
-    /* const std::pair<double, double> range = first_cellgeo->get_etabounds(ibin); */
-    /* const std::pair<double, double> range(0.0, 0.0); */
-    const std::pair<double, double> range(std::stod(first), std::stod(second));
+    parName = parBase + "_eta_";
+    double first, second;
+    first = cdbttree->GetDoubleValue(ibin, parName + "first");
+    second = cdbttree->GetDoubleValue(ibin, parName + "second");
+    const std::pair<double, double> range(first, second);
     m_RawTowerGeomContainer->set_etabounds(ibin, range);
     std::cout << "Setting eta bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
   }
   for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_phibins(); ibin++)
   {
-    char row[256];
-    inText.getline(row, 256);
-    std::string rowstring = row;
-    std::string first, second;
-    size_t pos = rowstring.find_first_of(",");
-    first = rowstring.substr(0, pos);
-    second = rowstring.substr(pos+1);
-    /* const std::pair<double, double> range = first_cellgeo->get_phibounds(ibin); */
-    /* const std::pair<double, double> range(0.0, 0.0); */
-    const std::pair<double, double> range(std::stod(first), std::stod(second));
+    parName = parBase + "_phi_";
+    double first, second;
+    first = cdbttree->GetDoubleValue(ibin, parName + "first");
+    second = cdbttree->GetDoubleValue(ibin, parName + "second");
+    const std::pair<double, double> range(first, second);
     m_RawTowerGeomContainer->set_phibounds(ibin, range);
     std::cout << "Setting phi bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
   }

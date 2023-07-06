@@ -22,7 +22,8 @@ libCaloGeomMapping_la_SOURCES = \
 libCaloGeomMapping_la_LIBADD = \
   -lphool \
   -lSubsysReco \
-  -lcalo_io
+  -lcalo_io \
+  -lcdbobjects
   # -lRawTowerGeomContainer \
   # -lRawTowerGeomv1 \
   # -lRawTowerGeomContainer_Cylinderv1
