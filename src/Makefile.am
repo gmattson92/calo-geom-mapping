@@ -23,7 +23,8 @@ libCaloGeomMapping_la_LIBADD = \
   -lphool \
   -lSubsysReco \
   -lcalo_io \
-  -lcdbobjects
+  -lcdbobjects \
+  -lffamodules
   # -lRawTowerGeomContainer \
   # -lRawTowerGeomv1 \
   # -lRawTowerGeomContainer_Cylinderv1

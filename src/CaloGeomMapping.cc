@@ -1,5 +1,6 @@
 #include "CaloGeomMapping.h"
 #include <cdbobjects/CDBTTree.h>
+#include <ffamodules/CDBInterface.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
@@ -10,6 +11,7 @@
 #include <phool/PHObject.h>
 #include <phool/getClass.h>
 #include <phool/phool.h>  // for PHWHERE
+#include <phool/recoConsts.h>
 
 #include <calobase/RawTowerDefs.h>           // for encode_towerid
 #include <calobase/RawTowerGeom.h>           // for RawTowerGeom
@@ -130,9 +132,14 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
     RunDetNode->addNode(newNode);
   }
 
-  std::string inName = "calo_geom_mapping.root";
+  // Get the geometry mapping file from the Conditions Database
+  recoConsts * rc = recoConsts::instance();
+  rc->set_StringFlag("CDB_GLOBALTAG","ProdA_2023"); // or MDC2, for the time being both work 
+  rc->set_uint64Flag("TIMESTAMP",6);
+  std::string inName=CDBInterface::instance()->getUrl("CALO_TOWER_GEOMETRY");
   CDBTTree * cdbttree = new CDBTTree(inName);
   cdbttree->LoadCalibrations();
+
   std::string parName;
   std::string parBase;
   // Set the radius, thickness, number of eta and phi bins
