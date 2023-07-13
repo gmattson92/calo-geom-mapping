@@ -11,7 +11,6 @@
 #include <phool/PHObject.h>
 #include <phool/getClass.h>
 #include <phool/phool.h>  // for PHWHERE
-#include <phool/recoConsts.h>
 
 #include <calobase/RawTowerDefs.h>           // for encode_towerid
 #include <calobase/RawTowerGeom.h>           // for RawTowerGeom
@@ -24,7 +23,9 @@
 
 //____________________________________________________________________________..
 CaloGeomMapping::CaloGeomMapping(const std::string &name):
- SubsysReco(name)
+ SubsysReco(name),
+ m_Detector("CEMC"),
+ m_RawTowerGeomContainer(nullptr)
 {
   std::cout << "CaloGeomMapping::CaloGeomMapping(const std::string &name) Calling ctor" << std::endl;
 }
@@ -40,7 +41,8 @@ int CaloGeomMapping::Init(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::Init(PHCompositeNode *topNode) Initializing" << std::endl;
 
-  std::cout << "Printing node tree before new node creation:" << std::endl;
+  /* std::cout << "Printing node tree before new node creation:" << std::endl; */
+  /* topNode->print(); */
   try
   {
     CreateGeomNode(topNode);
@@ -50,12 +52,13 @@ int CaloGeomMapping::Init(PHCompositeNode *topNode)
     std::cout << e.what() << std::endl;
     exit(1);
   }
-  std::cout << "Printing node tree after new node creation:" << std::endl;
-  topNode->print();
+  /* std::cout << "Printing node tree after new node creation:" << std::endl; */
+  /* topNode->print(); */
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
+/*
 int CaloGeomMapping::InitRun(PHCompositeNode *topNode)
 {
   std::cout << "CaloGeomMapping::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
@@ -102,6 +105,7 @@ void CaloGeomMapping::Print(const std::string &what) const
 {
   std::cout << "CaloGeomMapping::Print(const std::string &what) const Printing info for " << what << std::endl;
 }
+*/
 
 void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
 {
@@ -133,9 +137,6 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
   }
 
   // Get the geometry mapping file from the Conditions Database
-  recoConsts * rc = recoConsts::instance();
-  rc->set_StringFlag("CDB_GLOBALTAG","ProdA_2023"); // or MDC2, for the time being both work 
-  rc->set_uint64Flag("TIMESTAMP",6);
   std::string inName=CDBInterface::instance()->getUrl("CALO_TOWER_GEOMETRY");
   CDBTTree * cdbttree = new CDBTTree(inName);
   cdbttree->LoadCalibrations();
@@ -183,7 +184,7 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
     second = cdbttree->GetDoubleValue(ibin, parName + "second");
     const std::pair<double, double> range(first, second);
     m_RawTowerGeomContainer->set_etabounds(ibin, range);
-    std::cout << "Setting eta bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
+    /* std::cout << "Setting eta bounds for bin " << ibin << ", range is " << first << " - " << second << "\n"; */
   }
   for (int ibin = 0; ibin < m_RawTowerGeomContainer->get_phibins(); ibin++)
   {
@@ -193,7 +194,7 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
     second = cdbttree->GetDoubleValue(ibin, parName + "second");
     const std::pair<double, double> range(first, second);
     m_RawTowerGeomContainer->set_phibounds(ibin, range);
-    std::cout << "Setting phi bounds for bin " << ibin << ", range is " << first << " - " << second << "\n";
+    /* std::cout << "Setting phi bounds for bin " << ibin << ", range is " << first << " - " << second << "\n"; */
   }
 
   // Populate container with RawTowerGeom objects
@@ -262,3 +263,12 @@ void CaloGeomMapping::CreateGeomNode(PHCompositeNode* topNode)
   }  // end loop over eta, phi bins
 }  // end of building RawTowerGeomContainer
 
+void CaloGeomMapping::set_detector_name(std::string name)
+{
+  m_Detector = name;
+}
+
+std::string CaloGeomMapping::get_detector_name()
+{
+  return m_Detector;
+}

@@ -8,6 +8,8 @@
 #include <fun4all/Fun4AllOutputManager.h>
 #include <fun4all/Fun4AllServer.h>
 
+#include <phool/recoConsts.h>
+
 #include <calogeommapping/CaloGeomMapping.h>
 
 R__LOAD_LIBRARY(libfun4all.so)
@@ -33,6 +35,9 @@ void Fun4All_RunCaloGeomMapping(
   inCaloDst -> AddFile(inFile);
   se->registerInputManager(inCaloDst);  
 
+  recoConsts * rc = recoConsts::instance();
+  rc->set_StringFlag("CDB_GLOBALTAG","ProdA_2023"); // or MDC2, for the time being both work 
+  rc->set_uint64Flag("TIMESTAMP",6);
   CaloGeomMapping *eval = new CaloGeomMapping("dummy");//, outputFile);
   se->registerSubsystem(eval);
 

@@ -30,34 +30,37 @@ class CaloGeomMapping : public SubsysReco
       database, because you know the run number. A place
       to book histograms which have to know the run number.
    */
-  int InitRun(PHCompositeNode *topNode) override;
+  /* int InitRun(PHCompositeNode *topNode) override; */
 
   /** Called for each event.
       This is where you do the real work.
    */
-  int process_event(PHCompositeNode *topNode) override;
+  /* int process_event(PHCompositeNode *topNode) override; */
 
   /// Clean up internals after each event.
-  int ResetEvent(PHCompositeNode *topNode) override;
+  /* int ResetEvent(PHCompositeNode *topNode) override; */
 
   /// Called at the end of each run.
-  int EndRun(const int runnumber) override;
+  /* int EndRun(const int runnumber) override; */
 
   /// Called at the end of all processing.
-  int End(PHCompositeNode *topNode) override;
+  /* int End(PHCompositeNode *topNode) override; */
 
   /// Reset
-  int Reset(PHCompositeNode * /*topNode*/) override;
+  /* int Reset(PHCompositeNode * topNode) override; */
 
-  void Print(const std::string &what = "ALL") const override;
+  /* void Print(const std::string &what = "ALL") const override; */
 
   // Create tower geometry mapping node
   void CreateGeomNode(PHCompositeNode* topNode);
 
+  void set_detector_name(std::string name);
+  std::string get_detector_name();
+
  protected:
-  std::string m_Detector = "CEMC"; // CEMC, HCALIN or HCALOUT
+  std::string m_Detector; // CEMC, HCALIN or HCALOUT
   std::string m_TowerGeomNodeName;
-  RawTowerGeomContainer* m_RawTowerGeomContainer = nullptr;
+  RawTowerGeomContainer* m_RawTowerGeomContainer;
 };
 
 #endif // CALOGEOMMAPPING_H
