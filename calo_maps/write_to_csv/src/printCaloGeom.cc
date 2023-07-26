@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <utility>
+#include <TString.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
@@ -79,59 +80,22 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
   /* std::cout << "\n\nGreg info: got CEMC tower geometry. More details:\n"; */
   /* towergeom->identify(); */
   std::ofstream cemc;
-  cemc.open("emcal.txt");
+  cemc.open("emcal_tower_mapping.csv");
+  cemc << "iphi,phi min,phi max,ieta,eta min,eta max" << std::endl;
   std::pair<double, double> bounds;
-  for (int i=0; i<towergeom->get_etabins(); i++) {
-    bounds = towergeom->get_etabounds(i);
-    cemc << bounds.first << "," << bounds.second << "\n";
-  }
+  float phimin, phimax, etamin, etamax;
   for (int i=0; i<towergeom->get_phibins(); i++) {
-    bounds = towergeom->get_phibounds(i);
-    cemc << bounds.first << "," << bounds.second << "\n";
+    for (int j=0; j<towergeom->get_etabins(); j++) {
+      bounds = towergeom->get_phibounds(i);
+      phimin = bounds.first;
+      phimax = bounds.second;
+      bounds = towergeom->get_etabounds(j);
+      etamin = bounds.first;
+      etamax = bounds.second;
+      cemc << Form("%i,%f,%f,%i,%f,%f", i, phimin, phimax, j, etamin, etamax) << std::endl;
+    }
   }
   cemc.close();
-
-  //HCALIN
-  RawTowerGeomContainer *hcalin_towergeom = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALIN");
-  if (!hcalin_towergeom)
-    {
-      std::cout << PHWHERE << "singlePhotonClusterAna::process_event Could not find node TOWERGEOM_HCALIN"  << std::endl;
-      return Fun4AllReturnCodes::ABORTEVENT;
-    }
-  /* std::cout << "\n\nGreg info: got HCALIN tower geometry. More details:\n"; */
-  /* hcalin_towergeom->identify(); */
-  std::ofstream hcalin;
-  hcalin.open("ihcal.txt");
-  for (int i=0; i<hcalin_towergeom->get_etabins(); i++) {
-    bounds = hcalin_towergeom->get_etabounds(i);
-    hcalin << bounds.first << "," << bounds.second << "\n";
-  }
-  for (int i=0; i<hcalin_towergeom->get_phibins(); i++) {
-    bounds = hcalin_towergeom->get_phibounds(i);
-    hcalin << bounds.first << "," << bounds.second << "\n";
-  }
-  hcalin.close();
-
-  //HCALOUT
-  RawTowerGeomContainer *hcalout_towergeom = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALOUT");
-  if (!hcalout_towergeom)
-    {
-      std::cout << PHWHERE << "soutglePhotonClusterAna::process_event Could not foutd node TOWERGEOM_HCALOUT"  << std::endl;
-      return Fun4AllReturnCodes::ABORTEVENT;
-    }
-  /* std::cout << "\n\nGreg info: got HCALOUT tower geometry. More details:\n"; */
-  /* hcalout_towergeom->identify(); */
-  std::ofstream hcalout;
-  hcalout.open("ohcal.txt");
-  for (int i=0; i<hcalout_towergeom->get_etabins(); i++) {
-    bounds = hcalout_towergeom->get_etabounds(i);
-    hcalout << bounds.first << "," << bounds.second << "\n";
-  }
-  for (int i=0; i<hcalout_towergeom->get_phibins(); i++) {
-    bounds = hcalout_towergeom->get_phibounds(i);
-    hcalout << bounds.first << "," << bounds.second << "\n";
-  }
-  hcalout.close();
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
