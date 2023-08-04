@@ -25,6 +25,7 @@
 #include <calobase/RawCluster.h>
 #include <calobase/RawClusterContainer.h>
 #include <calobase/RawClusterUtility.h>
+#include <calobase/RawTowerDefs.h>
 #include <calobase/RawTowerGeom.h>
 #include <calobase/RawTowerGeomContainer.h>
 #include <calobase/RawTower.h>
@@ -97,6 +98,8 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
     }
 
   int size = towerinfos->size();
+  /* RawTowerGeomContainer::ConstRange tower_range = towergeom->get_tower_geometries(); */
+  /* RawTowerGeomContainer::ConstIterator tower_it = tower_range.first; */
   /* if (size > 100) size = 100; */
   int n_towers = 0;
   std::ofstream cemc;
@@ -104,7 +107,7 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
   cemc << "iphi,phi min,phi max,ieta,eta min,eta max" << std::endl;
   /* cemc << "iphi,phi min,phi max,ieta,eta min,eta max,eta center" << std::endl; */
   for (int channel=0; channel<size; channel++) {
-    n_towers++;
+    /* n_towers++; */
     /* TowerInfo *tow = towerinfos->get_tower_at_channel(channel); */
     unsigned int towerkey = towerinfos->encode_key(channel);
     int iphi = towerinfos->getTowerPhiBin(towerkey);
@@ -120,25 +123,19 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
     cemc << Form("%i,%f,%f,%i,%f,%f", iphi, phimin, phimax, ieta, etamin, etamax) << std::endl;
     /* float eta_center = towergeom->get_etacenter(ieta); */
     /* cemc << Form("%i,%f,%f,%i,%f,%f,%f", iphi, phimin, phimax, ieta, etamin, etamax, eta_center) << std::endl; */
+    if (ieta == 0) {
+      n_towers++;
+      /* const RawTowerGeom *tower = tower_it->second; */
+      RawTowerDefs::keytype key = RawTowerDefs::encode_towerid(towergeom->get_calorimeter_id(), ieta, iphi);
+      RawTowerGeom *tower = towergeom->get_tower_geometry(key);
+      std::cout << Form("ieta=%i, iphi=%i; ", ieta, iphi);
+      /* std::cout << "Greg info: tower=" << tower << "\n"; */
+      std::cout << Form("RawTowerGeom phibin=%i, phi=%f; RawTowerGeomContainer phimin=%f, phimax=%f\n", tower->get_binphi(), tower->get_phi(), phimin, phimax);
+    }
   }
   std::cout << "n_towers = " << n_towers << std::endl;
   cemc.close();
 
-  // loop over the tower container to see what's in in
-  /* RawTowerContainer::ConstRange tower_range = towers->getTowers(); */
-  /* RawTowerContainer::ConstIterator tower_it; */
-  /* /1* std::cout << "Greg info: starting loop. tower_range.first=" << tower_range.first->second << ", tower_range.second=" << tower_range.second->second << "\n"; *1/ */
-  /* int n_towers = 0; */
-  /* for (tower_it = tower_range.first; tower_it != tower_range.second; tower_it++) { */
-  /*   const RawTower *tower = tower_it->second; */
-  /*   std::cout << "tower_it->first=" << tower_it->first << "; tower=" << tower << "; tower->get_id()=" << tower->get_id() << "; tower->get_bineta()=" << tower->get_bineta() << "; tower->get_binphi()=" << tower->get_binphi() << "\n"; */
-  /*   n_towers++; */
-  /* } */
-  /* std::cout << "n_towers = " << n_towers << "\n"; */
-
-  /* std::ofstream cemc; */
-  /* cemc.open("emcal_tower_mapping.csv"); */
-  /* cemc << "iphi,phi min,phi max,ieta,eta min,eta max" << std::endl; */
   /* std::pair<double, double> bounds; */
   /* float phimin, phimax, etamin, etamax; */
   /* for (int i=0; i<towergeom->get_phibins(); i++) { */
@@ -159,7 +156,9 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
   /* int n_towers = 0; */
   /* for (tower_it = tower_range.first; tower_it != tower_range.second; tower_it++) { */
   /*   const RawTowerGeom *tower = tower_it->second; */
+  /*   std::cout << Form("tower phi bin=%i, phi=%f", tower->get_binphi(), tower->get_phi()) << std::endl; */
   /*   /1* std::cout << "tower_it->first=" << tower_it->first << "; tower=" << tower << "; tower->get_id()=" << tower->get_id() << "; tower->get_bineta()=" << tower->get_bineta() << "; tower->get_binphi()=" << tower->get_binphi() << "\n"; *1/ */
+  /* } */
   /*   int ieta, iphi; */
   /*   /1* float phimin, phimax, etamin, etamax; *1/ */
   /*   ieta = tower->get_bineta(); */
