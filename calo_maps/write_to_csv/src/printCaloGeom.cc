@@ -25,9 +25,12 @@
 #include <calobase/RawCluster.h>
 #include <calobase/RawClusterContainer.h>
 #include <calobase/RawClusterUtility.h>
+#include <calobase/RawTowerGeom.h>
 #include <calobase/RawTowerGeomContainer.h>
 #include <calobase/RawTower.h>
 #include <calobase/RawTowerContainer.h>
+#include <calobase/TowerInfo.h>
+#include <calobase/TowerInfoContainerv1.h>
 
 //caloEvalStack for cluster to truth matching
 #include <g4eval/CaloEvalStack.h>
@@ -79,23 +82,97 @@ int printCaloGeom::process_event(PHCompositeNode *topNode)
     }
   /* std::cout << "\n\nGreg info: got CEMC tower geometry. More details:\n"; */
   /* towergeom->identify(); */
+  /* RawTowerContainer *towers = findNode::getClass<RawTowerContainer>(topNode, "TOWER_RAW_CEMC"); */
+  /* if (!towers) */
+  /*   { */
+  /*     std::cout << PHWHERE << "printCaloGeom::process_event Could not find node TOWER_RAW_CEMC" << std::endl; */
+  /*     return Fun4AllReturnCodes::ABORTEVENT; */
+  /*   } */
+
+  TowerInfoContainer *towerinfos = findNode::getClass<TowerInfoContainerv1>(topNode, "TOWERINFO_CALIB_CEMC");
+  if (!towerinfos)
+    {
+      std::cout << PHWHERE << "printCaloGeom::process_event Could not find node TOWERINFO_CALIB_CEMC" << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+
+  int size = towerinfos->size();
+  /* if (size > 100) size = 100; */
+  int n_towers = 0;
   std::ofstream cemc;
   cemc.open("emcal_tower_mapping.csv");
   cemc << "iphi,phi min,phi max,ieta,eta min,eta max" << std::endl;
-  std::pair<double, double> bounds;
-  float phimin, phimax, etamin, etamax;
-  for (int i=0; i<towergeom->get_phibins(); i++) {
-    for (int j=0; j<towergeom->get_etabins(); j++) {
-      bounds = towergeom->get_phibounds(i);
-      phimin = bounds.first;
-      phimax = bounds.second;
-      bounds = towergeom->get_etabounds(j);
-      etamin = bounds.first;
-      etamax = bounds.second;
-      cemc << Form("%i,%f,%f,%i,%f,%f", i, phimin, phimax, j, etamin, etamax) << std::endl;
-    }
+  /* cemc << "iphi,phi min,phi max,ieta,eta min,eta max,eta center" << std::endl; */
+  for (int channel=0; channel<size; channel++) {
+    n_towers++;
+    /* TowerInfo *tow = towerinfos->get_tower_at_channel(channel); */
+    unsigned int towerkey = towerinfos->encode_key(channel);
+    int iphi = towerinfos->getTowerPhiBin(towerkey);
+    int ieta = towerinfos->getTowerEtaBin(towerkey);
+    std::pair<double, double> bounds;
+    float phimin, phimax, etamin, etamax;
+    bounds = towergeom->get_phibounds(iphi);
+    phimin = bounds.first;
+    phimax = bounds.second;
+    bounds = towergeom->get_etabounds(ieta);
+    etamin = bounds.first;
+    etamax = bounds.second;
+    cemc << Form("%i,%f,%f,%i,%f,%f", iphi, phimin, phimax, ieta, etamin, etamax) << std::endl;
+    /* float eta_center = towergeom->get_etacenter(ieta); */
+    /* cemc << Form("%i,%f,%f,%i,%f,%f,%f", iphi, phimin, phimax, ieta, etamin, etamax, eta_center) << std::endl; */
   }
+  std::cout << "n_towers = " << n_towers << std::endl;
   cemc.close();
+
+  // loop over the tower container to see what's in in
+  /* RawTowerContainer::ConstRange tower_range = towers->getTowers(); */
+  /* RawTowerContainer::ConstIterator tower_it; */
+  /* /1* std::cout << "Greg info: starting loop. tower_range.first=" << tower_range.first->second << ", tower_range.second=" << tower_range.second->second << "\n"; *1/ */
+  /* int n_towers = 0; */
+  /* for (tower_it = tower_range.first; tower_it != tower_range.second; tower_it++) { */
+  /*   const RawTower *tower = tower_it->second; */
+  /*   std::cout << "tower_it->first=" << tower_it->first << "; tower=" << tower << "; tower->get_id()=" << tower->get_id() << "; tower->get_bineta()=" << tower->get_bineta() << "; tower->get_binphi()=" << tower->get_binphi() << "\n"; */
+  /*   n_towers++; */
+  /* } */
+  /* std::cout << "n_towers = " << n_towers << "\n"; */
+
+  /* std::ofstream cemc; */
+  /* cemc.open("emcal_tower_mapping.csv"); */
+  /* cemc << "iphi,phi min,phi max,ieta,eta min,eta max" << std::endl; */
+  /* std::pair<double, double> bounds; */
+  /* float phimin, phimax, etamin, etamax; */
+  /* for (int i=0; i<towergeom->get_phibins(); i++) { */
+  /*   for (int j=0; j<towergeom->get_etabins(); j++) { */
+  /*     bounds = towergeom->get_phibounds(i); */
+  /*     phimin = bounds.first; */
+  /*     phimax = bounds.second; */
+  /*     bounds = towergeom->get_etabounds(j); */
+  /*     etamin = bounds.first; */
+  /*     etamax = bounds.second; */
+  /*     cemc << Form("%i,%f,%f,%i,%f,%f", i, phimin, phimax, j, etamin, etamax) << std::endl; */
+  /*   } */
+  /* } */
+  /* cemc.close(); */
+
+  /* RawTowerGeomContainer::ConstRange tower_range = towergeom->get_tower_geometries(); */
+  /* RawTowerGeomContainer::ConstIterator tower_it; */
+  /* int n_towers = 0; */
+  /* for (tower_it = tower_range.first; tower_it != tower_range.second; tower_it++) { */
+  /*   const RawTowerGeom *tower = tower_it->second; */
+  /*   /1* std::cout << "tower_it->first=" << tower_it->first << "; tower=" << tower << "; tower->get_id()=" << tower->get_id() << "; tower->get_bineta()=" << tower->get_bineta() << "; tower->get_binphi()=" << tower->get_binphi() << "\n"; *1/ */
+  /*   int ieta, iphi; */
+  /*   /1* float phimin, phimax, etamin, etamax; *1/ */
+  /*   ieta = tower->get_bineta(); */
+  /*   iphi = tower->get_binphi(); */
+  /*   bounds = towergeom->get_phibounds(iphi); */
+  /*   phimin = bounds.first; */
+  /*   phimax = bounds.second; */
+  /*   bounds = towergeom->get_etabounds(ieta); */
+  /*   etamin = bounds.first; */
+  /*   etamax = bounds.second; */
+  /*   n_towers++; */
+  /* } */
+  /* std::cout << "n_towers = " << n_towers << "\n"; */
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
